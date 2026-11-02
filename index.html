@@ -116,6 +116,7 @@ function status(cls,txt){var s=$('#sync');s.className='sync '+cls;s.lastChild.te
 function renderNav(){
   var h='<button class="tab" data-r="home" aria-current="'+(route==='home')+'">總覽</button>';
   sortedDays().forEach(function(d){h+='<button class="tab" data-r="d'+d.n+'" aria-current="'+(route==='d'+d.n)+'">D'+d.n+'</button>'});
+  h+='<button class="tab" data-r="flight" aria-current="'+(route==='flight')+'">機票</button>';
   h+='<button class="tab" data-r="cost" aria-current="'+(route==='cost')+'">花費</button>';
   $('#nav').innerHTML=h;
 }
@@ -174,6 +175,12 @@ function renderDay(n){
   return h;
 }
 
+function linkify(t){return esc(t).replace(/(https?:[/][/][A-Za-z0-9%/?=&._~#:+-]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
+function renderFlight(){
+  var t=meta.flight||'';
+  if(editing)return '<div class="panel"><label>機票建議與備註（可自由修改，網址會自動變連結）<textarea id="f_txt" style="min-height:360px">'+esc(t)+'</textarea></label><div class="acts"><button class="btn pri" id="saveFlight">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div></div>';
+  return '<div class="panel" style="white-space:pre-wrap;line-height:1.8">'+linkify(t||'還沒有內容，按右上角「編輯」新增。')+'</div>';
+}
 function renderCost(){
   var ds=sortedDays(),max=Math.max.apply(null,ds.map(dayTotal).concat([1])),total=ds.reduce(function(s,d){return s+dayTotal(d)},0);
   var h='<div class="stats"><div class="stat"><b>'+yen(total)+'</b><span>預估合計（每人）</span></div><div class="stat"><b>'+twd(total)+'</b><span>約合台幣</span></div>'
@@ -197,6 +204,7 @@ function render(){
   if(!sortedDays().length){el.innerHTML='<div class="msg">還沒有行程資料。</div>';return}
   if(route==='home')el.innerHTML=renderHome();
   else if(route==='cost')el.innerHTML=renderCost();
+  else if(route==='flight')el.innerHTML=renderFlight();
   else el.innerHTML=renderDay(parseInt(route.slice(1),10));
   var eb=$('#editBtn');
   eb.hidden=!canWrite||route==='cost';
@@ -249,6 +257,13 @@ async function saveMeta(){
   catch(e){meta=old;status('bad',errTxt(e))}
   busy=false;
 }
+async function saveFlight(){
+  if(busy)return;busy=true;
+  var old=meta;meta=Object.assign({},meta,{flight:$('#f_txt').value});status('','儲存中…');
+  try{await persist();status('ok','已存到 GitHub');stopEdit()}
+  catch(e){meta=old;status('bad',errTxt(e))}
+  busy=false;
+}
 async function addDay(){
   if(busy)return;busy=true;
   var n=sortedDays().length+1;days['d'+n]={n:n,title:'新的一天',tip:'',spots:[]};status('','儲存中…');
@@ -264,6 +279,7 @@ document.addEventListener('click',function(e){
   if(t.id==='saveDay'){saveDay();return}
   if(t.id==='cancelDay'){stopEdit();return}
   if(t.id==='saveMeta'){saveMeta();return}
+  if(t.id==='saveFlight'){saveFlight();return}
   if(t.id==='addDay'){addDay();return}
   if(t.id==='addSpot'&&draft){draft.spots.push({time:'',name:'',memo:'',cost:0});render();return}
   var a=t.dataset.a;if(!a||!draft)return;

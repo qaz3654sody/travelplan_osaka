@@ -3,7 +3,8 @@
   "title": "大阪旅記",
   "sub": "2027 年 3 月・大阪 7 天 6 夜・住宿新今宮／動物園前一帶",
   "start": "",
-  "rate": 0.21
+  "rate": 0.21,
+  "flight": "票價是搜尋時的快照，2027 年 3 月實際價格請以官網為準。\n\n【查到的選項】\n・長榮：來回約 NT$14,000~14,400 起\nhttps://flights.evaair.com/zh-tw/flights-from-taipei\n・日航 JAL：來回 NT$15,872 起\nhttps://www.jal.co.jp/jp/ja/flights/zh-tw/%E8%88%AA%E7%8F%AD-%E5%87%BA%E7%99%BC%E8%87%AA-%E5%8F%B0%E5%8C%97-%E5%89%8D%E5%BE%80-%E5%A4%A7%E9%98%AA\n・樂桃 Peach：單程最低 NT$3,060 起，不含行李與選位\nhttps://www.flypeach.com/tw/others/discover_japan\n・星宇：有大阪航班\nhttps://www.starlux-airlines.com/flights/zh/flights-from-osaka-to-taipei\n・華航、虎航：沒有查到資料，請看官網\n\n【建議】\n・這趟行程節奏緊湊，建議選傳統航空，23 公斤行李已含。樂桃加購行李與選位後，價差會縮小。\n・去程選早上班機（約 8~9 點）可多出半天。目前行程假設 12:30 抵達，航班確定後請調整 Day 1。\n・回程選傍晚或晚上，配合 Day 7 在心齋橋逛一整天。目前假設 20:30 起飛，航班確定後請調整 Day 7。\n・回程建議加購行李額度，伴手禮和戰利品通常會變多。\n\n【訂票時機】\n・3 月下旬是櫻花旺季。沒有查到 2027 年的開賣日，請看航空官網公告，開賣後盡快比價。\n・Google Flights 或 Kayak 可設價格提醒。\n\n【住宿提醒】\n・新今宮和動物園前的南側鄰近西成地區，晚上治安較差。建議選新今宮站北側靠通天閣一帶，深夜不要走南邊小巷。"
  },
  "days": [
   {
@@ -12,7 +13,7 @@
     {
      "time": "08:00",
      "name": "桃園機場 TPE 出發",
-     "memo": "機票另計，航班請看下方建議",
+     "memo": "機票建議請看上方「機票」分頁",
      "cost": 0
     },
     {
