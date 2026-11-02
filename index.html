@@ -135,7 +135,7 @@ function renderHome(){
   }
   h+='<div class="stats"><div class="stat"><b>'+ds.length+'</b><span>天</span></div><div class="stat"><b>'+spots+'</b><span>個行程點</span></div>'
    +'<div class="stat"><b>'+yen(total)+'</b><span>行程花費（每人）</span></div><div class="stat"><b>NT$'+num(totals().all)+'</b><span>總預估（含機票住宿），匯率 '+esc(meta.rate)+'</span></div></div>';
-  h+='<p class="note">3 月上旬是梅花尾聲，3 月下旬到 4 月初才是大阪櫻花。想賞櫻請排在 3/25 之後，住宿與環球影城門票盡早預訂。金額是粗估，請依實際票價修改。</p>';
+  h+='<p class="note">3 月上旬是梅花尾聲，3 月下旬到 4 月初才是大阪櫻花。想賞櫻請排在 3/25 之後，機票與住宿盡早預訂。金額是粗估，請依實際票價與房價修改，機票和住宿可在各自分頁填寫。</p>';
   h+='<div class="dgrid">';
   ds.forEach(function(d){
     h+='<button class="dcard" data-r="d'+d.n+'"><span class="dn">DAY '+d.n+(dateOf(d.n)?' · '+dateOf(d.n):'')+'</span><span class="dt">'+esc(d.title)+'</span>'
