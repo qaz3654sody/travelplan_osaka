@@ -76,6 +76,8 @@ textarea{resize:vertical;min-height:40px}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;display:grid;gap:10px}
 .panel .g{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
 .panel label{font-size:12px;color:var(--mute);display:grid;gap:3px}
+.jp{color:var(--mute);font-size:.75em;font-weight:400}
+select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
 .msg{padding:30px 0;text-align:center;color:var(--mute)}
 @media (max-width:480px){.f{grid-template-columns:70px 1fr}.f .c{grid-column:1/-1}.costrow{grid-template-columns:58px 1fr auto}}
 @media (prefers-reduced-motion:no-preference){.dcard{transition:border-color .15s}}
@@ -99,12 +101,15 @@ textarea{resize:vertical;min-height:40px}
 var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var db=null,meta={title:'大阪旅記',sub:'',start:'',rate:0.21},days={},editing=false,draft=null,metaDraft=null,route='home',canWrite=true,loaded=false,busy=false;
+var hdraft=null;
 var WD=['日','一','二','三','四','五','六'];
 
 function sortedDays(){return Object.keys(days).map(function(k){return days[k]}).sort(function(a,b){return a.n-b.n})}
 function dayTotal(d){return (d.spots||[]).reduce(function(s,x){return s+(Number(x.cost)||0)},0)}
 function yen(n){return '¥'+Math.round(n).toLocaleString('en-US')}
 function twd(n){return 'NT$'+Math.round(n*(Number(meta.rate)||0)).toLocaleString('en-US')}
+function ntd(jpy){return 'NT$'+Math.round((Number(jpy)||0)*(Number(meta.rate)||0)).toLocaleString('en-US')}
+function both(jpy){return ntd(jpy)+'<small class="jp"> ¥'+Math.round(Number(jpy)||0).toLocaleString('en-US')+'</small>'}
 function dateOf(n){
   if(!meta.start)return '';
   var p=meta.start.split('-');if(p.length!==3)return '';
@@ -134,12 +139,12 @@ function renderHome(){
      +'<div class="acts"><button class="btn pri" id="saveMeta">儲存設定</button><button class="btn" id="addDay">新增一天</button></div></div>';
   }
   h+='<div class="stats"><div class="stat"><b>'+ds.length+'</b><span>天</span></div><div class="stat"><b>'+spots+'</b><span>個行程點</span></div>'
-   +'<div class="stat"><b>'+yen(total)+'</b><span>行程花費（每人）</span></div><div class="stat"><b>NT$'+num(totals().all)+'</b><span>每人總預估（含機票住宿），'+totals().people+' 人合計 NT$'+num(totals().group)+'，匯率 '+esc(meta.rate)+'</span></div></div>';
+   +'<div class="stat"><b>'+ntd(total)+'</b><span>行程花費（每人），¥'+num(total)+'</span></div><div class="stat"><b>NT$'+num(totals().all)+'</b><span>每人總預估（含機票住宿），'+totals().people+' 人合計 NT$'+num(totals().group)+'，匯率 '+esc(meta.rate)+'</span></div></div>';
   h+='<p class="note">3 月上旬是梅花尾聲，3 月下旬到 4 月初才是大阪櫻花。想賞櫻請排在 3/25 之後，機票與住宿盡早預訂。金額是粗估，請依實際票價與房價修改，機票和住宿可在各自分頁填寫。</p>';
   h+='<div class="dgrid">';
   ds.forEach(function(d){
     h+='<button class="dcard" data-r="d'+d.n+'"><span class="dn">DAY '+d.n+(dateOf(d.n)?' · '+dateOf(d.n):'')+'</span><span class="dt">'+esc(d.title)+'</span>'
-     +'<span class="dm">'+(d.spots||[]).length+' 站 · '+yen(dayTotal(d))+'</span></button>';
+     +'<span class="dm">'+(d.spots||[]).length+' 站 · '+ntd(dayTotal(d))+'</span></button>';
   });
   h+='</div>';
   return h;
@@ -156,19 +161,19 @@ function renderDay(n){
     h+='<ul class="tl">';
     (d.spots||[]).forEach(function(s){
       h+='<li><div class="t">'+esc(s.time)+'</div><div class="b"><div class="row"><span class="nm">'+esc(s.name)+'</span>'
-       +(Number(s.cost)?'<span class="cost">'+yen(s.cost)+'</span>':'')+'</div>'
+       +(Number(s.cost)?'<span class="cost">'+both(s.cost)+'</span>':'')+'</div>'
        +(s.memo?'<div class="mm">'+esc(s.memo)+'</div>':'')
        +'<a class="map" href="'+mapLink(s.name)+'" target="_blank" rel="noopener">地圖</a></div></li>';
     });
     h+='</ul>';
-    h+='<p class="hint">本日合計 '+yen(dayTotal(d))+'（約 '+twd(dayTotal(d))+'）</p>';
+    h+='<p class="hint">本日合計 '+both(dayTotal(d))+'</p>';
     return h;
   }
   h+='<div class="panel"><label>當天主題<input id="e_title" value="'+esc(d.title)+'"></label><label>提醒（選填）<textarea id="e_tip">'+esc(d.tip||'')+'</textarea></label></div>';
   h+='<ul class="tl edit">';
   (d.spots||[]).forEach(function(s,i){
     h+='<li><div class="b"><div class="f"><input data-i="'+i+'" data-k="time" value="'+esc(s.time)+'" aria-label="時間"><input data-i="'+i+'" data-k="name" value="'+esc(s.name)+'" aria-label="名稱">'
-     +'<input class="c" data-i="'+i+'" data-k="cost" inputmode="numeric" value="'+esc(s.cost||'')+'" placeholder="¥ 花費" aria-label="花費"></div>'
+     +'<input class="c" data-i="'+i+'" data-k="cost" inputmode="numeric" value="'+esc(s.cost||'')+'" placeholder="日圓 ¥" aria-label="花費（日圓）"></div>'
      +'<textarea data-i="'+i+'" data-k="memo" aria-label="備註">'+esc(s.memo||'')+'</textarea>'
      +'<div class="acts"><button class="btn" data-a="up" data-i="'+i+'">上移</button><button class="btn" data-a="down" data-i="'+i+'">下移</button><button class="btn" data-a="del" data-i="'+i+'">刪除</button></div></div></li>';
   });
@@ -179,45 +184,67 @@ function renderDay(n){
 function linkify(t){return esc(t).replace(/(https?:[/][/][A-Za-z0-9%/?=&._~#:+-]+)/g,'<a href="$1" target="_blank" rel="noopener">$1</a>')}
 function num(n){return Math.round(Number(n)||0).toLocaleString('en-US')}
 function parseNum(s){return parseFloat(String(s).split(',').join('').replace(/[^0-9.]/g,''))||0}
+function hotelTwd(x){var r=Number(x.cur==='JPY'?meta.rate:1)||0;return (Number(x.rate)||0)*(Number(x.nights)||0)*Math.max(1,Number(x.rooms)||1)*r}
+function selHotelObj(){var hs=meta.hotels||[];for(var i=0;i<hs.length;i++)if(hs[i].id===meta.hotelSel)return hs[i];return hs[0]||null}
+function rateTxt(x){return (x.cur==='JPY'?'¥':'NT$')+num(x.rate)}
 function totals(){
   var ds=sortedDays(),spots=ds.reduce(function(s,d){return s+dayTotal(d)},0);
-  var people=Math.max(1,Number(meta.people)||1),rooms=Math.max(1,Number(meta.hotelRooms)||1);
-  var hotelTotal=(Number(meta.hotelRate)||0)*(Number(meta.hotelNights)||0)*rooms;
-  var r=Number(meta.rate)||0,flight=Number(meta.flightTwd)||0;
-  var group=(spots*people+hotelTotal)*r+flight*people;
-  return {people:people,rooms:rooms,spots:spots,hotel:hotelTotal/people,hotelTotal:hotelTotal,flight:flight,group:group,all:group/people};
+  var people=Math.max(1,Number(meta.people)||1),r=Number(meta.rate)||0,flight=Number(meta.flightTwd)||0;
+  var sel=selHotelObj(),hotelTotal=sel?hotelTwd(sel):0;
+  var group=spots*r*people+hotelTotal+flight*people;
+  return {people:people,spots:spots,spotsTwd:spots*r,hotel:hotelTotal/people,hotelTotal:hotelTotal,hotelName:sel?(sel.name||'尚未命名'):'尚未設定',flight:flight,group:group,all:group/people};
 }
 function renderTotals(){
   var t=totals();
   return '<div class="stats"><div class="stat"><b>NT$'+num(t.group)+'</b><span>'+t.people+' 人合計（含機票住宿）</span></div>'
    +'<div class="stat"><b>NT$'+num(t.all)+'</b><span>每人總預估</span></div>'
-   +'<div class="stat"><b>'+yen(t.spots)+'</b><span>行程花費（每人），約 '+twd(t.spots)+'</span></div>'
-   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>住宿（每人），全部 '+yen(t.hotelTotal)+'</span></div>'
+   +'<div class="stat"><b>NT$'+num(t.spotsTwd)+'</b><span>行程花費（每人），¥'+num(t.spots)+'</span></div>'
+   +'<div class="stat"><b>NT$'+num(t.hotel)+'</b><span>住宿（每人），'+esc(t.hotelName)+' 全部 NT$'+num(t.hotelTotal)+'</span></div>'
    +'<div class="stat"><b>NT$'+num(t.flight)+'</b><span>來回機票（每人），'+t.people+' 人 NT$'+num(t.flight*t.people)+'</span></div></div>';
 }
 function renderHotel(){
-  var t=totals();
-  if(editing)return '<div class="panel"><div class="g">'
-   +'<label>住宿名稱<input id="h_name" value="'+esc(meta.hotelName||'')+'"></label>'
-   +'<label>地區<input id="h_area" value="'+esc(meta.hotelArea||'')+'"></label>'
-   +'<label>晚數<input id="h_nights" inputmode="numeric" value="'+esc(meta.hotelNights)+'"></label>'
-   +'<label>每間每晚（日圓）<input id="h_rate" inputmode="numeric" value="'+esc(meta.hotelRate)+'"></label>'
-   +'<label>房間數<input id="h_rooms" inputmode="numeric" value="'+esc(meta.hotelRooms||1)+'"></label></div>'
-   +'<label>備註（這個網頁是公開的，訂房編號、房號請不要寫）<textarea id="h_note" style="min-height:120px">'+esc(meta.hotelNote||'')+'</textarea></label>'
-   +'<div class="acts"><button class="btn pri" id="saveHotel">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div></div>';
-  return '<div class="stats"><div class="stat"><b>'+yen(t.hotelTotal)+'</b><span>住宿總額，'+esc(meta.hotelNights)+' 晚 × '+yen(meta.hotelRate)+' × '+t.rooms+' 間</span></div>'
-   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>每人，'+t.people+' 人分攤，約 '+twd(t.hotel)+'</span></div></div>'
-   +'<div class="panel"><div><b>'+esc(meta.hotelName||'尚未決定住宿')+'</b></div><div class="sub">'+esc(meta.hotelArea||'')+'</div>'
-   +'<div style="white-space:pre-wrap">'+esc(meta.hotelNote||'')+'</div></div>';
+  var p=totals().people,sel=selHotelObj(),out='';
+  if(editing&&hdraft){
+    hdraft.forEach(function(x,i){
+      out+='<div class="panel"><div class="g">'
+       +'<label>住宿名稱<input data-h="'+i+'" data-hk="name" value="'+esc(x.name)+'"></label>'
+       +'<label>地區<input data-h="'+i+'" data-hk="area" value="'+esc(x.area)+'"></label>'
+       +'<label>晚數<input data-h="'+i+'" data-hk="nights" inputmode="numeric" value="'+esc(x.nights)+'"></label>'
+       +'<label>每間每晚<input data-h="'+i+'" data-hk="rate" inputmode="numeric" value="'+esc(x.rate)+'"></label>'
+       +'<label>幣別<select data-h="'+i+'" data-hk="cur"><option value="JPY"'+(x.cur==='TWD'?'':' selected')+'>日圓 ¥</option><option value="TWD"'+(x.cur==='TWD'?' selected':'')+'>台幣 NT$</option></select></label>'
+       +'<label>房間數<input data-h="'+i+'" data-hk="rooms" inputmode="numeric" value="'+esc(x.rooms)+'"></label></div>'
+       +'<label>備註（這個網頁是公開的，訂房編號、房號請不要寫）<textarea data-h="'+i+'" data-hk="note" style="min-height:90px">'+esc(x.note)+'</textarea></label>'
+       +'<div class="acts"><button class="btn" data-ha="del" data-h="'+i+'">刪除這間</button></div></div>';
+    });
+    return out+'<div class="acts"><button class="btn" id="addHotel">新增一間住宿</button><button class="btn pri" id="saveHotel">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div>';
+  }
+  var hs=meta.hotels||[];
+  if(!hs.length)return '<div class="msg">還沒有住宿，按右上角「編輯」新增。</div>';
+  out='<div class="dgrid">';
+  hs.forEach(function(x,i){
+    var on=sel&&x.id===sel.id,tt=hotelTwd(x);
+    out+='<div class="dcard" style="cursor:default;'+(on?'border-color:var(--acc)':'')+'"><span class="dn">'+(on?'目前採用':'備選 '+(i+1))+'</span><span class="dt">'+esc(x.name||'尚未命名')+'</span>'
+     +'<span class="dm">'+esc(x.area||'')+'</span><span class="dm">'+rateTxt(x)+' × '+num(x.nights)+' 晚 × '+Math.max(1,Number(x.rooms)||1)+' 間</span>'
+     +'<b>NT$'+num(tt)+'</b><span class="dm">每人 NT$'+num(tt/p)+'（'+p+' 人分攤）</span>'
+     +(x.note?'<span class="mm" style="white-space:pre-wrap">'+esc(x.note)+'</span>':'')
+     +(on?'':'<span class="acts"><button class="btn" data-ha="sel" data-h="'+i+'">採用這間</button></span>')+'</div>';
+  });
+  return out+'</div><p class="hint">按「採用這間」，總預估會改用那間的價格。</p>';
 }
 async function saveHotel(){
-  if(busy)return;busy=true;
-  var old=meta;
-  meta=Object.assign({},meta,{hotelName:$('#h_name').value,hotelArea:$('#h_area').value,hotelNights:parseNum($('#h_nights').value),hotelRate:parseNum($('#h_rate').value),hotelRooms:Math.max(1,parseNum($('#h_rooms').value)),hotelNote:$('#h_note').value});
-  status('','儲存中…');
+  if(busy||!hdraft)return;busy=true;
+  var list=hdraft.map(function(x){return {id:x.id,name:x.name||'',area:x.area||'',nights:parseNum(x.nights),rate:parseNum(x.rate),cur:x.cur==='TWD'?'TWD':'JPY',rooms:Math.max(1,parseNum(x.rooms)),note:x.note||''}});
+  var sel=meta.hotelSel;if(!list.some(function(x){return x.id===sel}))sel=list.length?list[0].id:'';
+  var old=meta;meta=Object.assign({},meta,{hotels:list,hotelSel:sel});status('','儲存中…');
   try{await persist();status('ok','已存到 GitHub');stopEdit()}
   catch(e){meta=old;status('bad',errTxt(e))}
   busy=false;
+}
+async function selHotel(i){
+  if(busy)return;var x=(meta.hotels||[])[i];if(!x)return;busy=true;
+  var old=meta;meta=Object.assign({},meta,{hotelSel:x.id});status('','儲存中…');
+  try{await persist();status('ok','已存到 GitHub')}catch(e){meta=old;status('bad',errTxt(e))}
+  busy=false;render();
 }
 function renderFlight(){
   var t=meta.flight||'';
@@ -227,13 +254,13 @@ function renderFlight(){
 function renderCost(){return renderTotals()+renderCost0()}
 function renderCost0(){
   var ds=sortedDays(),max=Math.max.apply(null,ds.map(dayTotal).concat([1])),total=ds.reduce(function(s,d){return s+dayTotal(d)},0);
-  var h='<div class="stats"><div class="stat"><b>'+yen(total)+'</b><span>預估合計（每人）</span></div><div class="stat"><b>'+twd(total)+'</b><span>約合台幣</span></div>'
-   +'<div class="stat"><b>'+(ds.length?yen(total/ds.length):'¥0')+'</b><span>平均每天</span></div></div>';
+  var h='<div class="stats"><div class="stat"><b>'+ntd(total)+'</b><span>行程花費合計（每人），¥'+num(total)+'</span></div>'
+   +'<div class="stat"><b>'+(ds.length?ntd(total/ds.length):'NT$0')+'</b><span>平均每天（每人）</span></div></div>';
   ds.forEach(function(d){
     var t=dayTotal(d);
-    h+='<div class="costrow"><span>DAY '+d.n+'</span><span class="ttl"><span>'+esc(d.title)+'</span><span class="bar2"><i style="width:'+Math.round(t/max*100)+'%"></i></span></span><span>'+yen(t)+'<br><small class="hint">'+twd(t)+'</small></span></div>';
+    h+='<div class="costrow"><span>DAY '+d.n+'</span><span class="ttl"><span>'+esc(d.title)+'</span><span class="bar2"><i style="width:'+Math.round(t/max*100)+'%"></i></span></span><span>'+ntd(t)+'<br><small class="hint">¥'+num(t)+'</small></span></div>';
   });
-  h+='<p class="hint">機票與住宿請到對應分頁修改。快速通關等選購項目未計入。下面是每天的行程花費。</p>';
+  h+='<p class="hint">機票與住宿請到對應分頁修改。快速通關等選購項目未計入。上面是每天的行程花費。</p>';
   return h;
 }
 
@@ -257,7 +284,7 @@ function render(){
 }
 
 function go(r){
-  if(editing&&!(draft&&route==='d'+draft.n&&r===route)){editing=false;draft=null;metaDraft=null}
+  if(editing&&!(draft&&route==='d'+draft.n&&r===route)){editing=false;draft=null;metaDraft=null;hdraft=null}
   route=r;render();window.scrollTo(0,0);
   try{if(r.indexOf('d')===0||r==='cost')location.hash='';}catch(e){}
 }
@@ -265,10 +292,11 @@ function go(r){
 function startEdit(){
   editing=true;
   if(route==='home'){metaDraft=JSON.parse(JSON.stringify(meta))}
+  else if(route==='hotel'){hdraft=JSON.parse(JSON.stringify(meta.hotels||[]))}
   else if(route.charAt(0)==='d'){draft=JSON.parse(JSON.stringify(days[route]||{}));if(!draft.spots)draft.spots=[]}
   render();
 }
-function stopEdit(){editing=false;draft=null;metaDraft=null;render()}
+function stopEdit(){editing=false;draft=null;metaDraft=null;hdraft=null;render()}
 
 var REPO=location.hostname.split('.')[0]+'/'+location.pathname.split('/')[1];
 function getTok(){try{return localStorage.getItem('gh_tok')||''}catch(e){return ''}}
@@ -326,6 +354,8 @@ document.addEventListener('click',function(e){
   if(t.id==='saveMeta'){saveMeta();return}
   if(t.id==='saveFlight'){saveFlight();return}
   if(t.id==='saveHotel'){saveHotel();return}
+  if(t.id==='addHotel'&&hdraft){hdraft.push({id:'h'+Date.now(),name:'',area:'',nights:6,rate:0,cur:'JPY',rooms:1,note:''});render();return}
+  if(t.dataset.ha){var hi=+t.dataset.h;if(t.dataset.ha==='del'&&hdraft){hdraft.splice(hi,1);render()}else if(t.dataset.ha==='sel'){selHotel(hi)}return}
   if(t.id==='addDay'){addDay();return}
   if(t.id==='addSpot'&&draft){draft.spots.push({time:'',name:'',memo:'',cost:0});render();return}
   var a=t.dataset.a;if(!a||!draft)return;
@@ -337,6 +367,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){
   var t=e.target;
+  if(hdraft&&t.dataset&&t.dataset.hk){hdraft[+t.dataset.h][t.dataset.hk]=t.value}
   if(draft&&t.dataset&&t.dataset.k){draft.spots[+t.dataset.i][t.dataset.k]=t.value}
 });
 
