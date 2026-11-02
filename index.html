@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="light dark"><style>body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>大阪旅記</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: sticky tab bar over a single column; home = day cards, day = vertical timeline, cost = per-day bars */
+:root{--bg:#faf6f1;--card:#fff;--ink:#2b2622;--mute:#7d726a;--acc:#d9534f;--acc2:#2f7d8c;--line:#eadfd4;--chip:#f1e8de;--ok:#3f8f5b;--warn:#c27a1a;
+--sans:"Noto Sans TC",-apple-system,"Microsoft JhengHei",sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1a18;--card:#282421;--ink:#f1ebe5;--mute:#a1968c;--acc:#e8706b;--acc2:#5fb0c0;--line:#3a3430;--chip:#352f2b;--ok:#6cc08a;--warn:#e0a24c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1d1a18;--card:#282421;--ink:#f1ebe5;--mute:#a1968c;--acc:#e8706b;--acc2:#5fb0c0;--line:#3a3430;--chip:#352f2b;--ok:#6cc08a;--warn:#e0a24c;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6;font-variant-numeric:tabular-nums}
+a{color:var(--acc2)}
+button,input,textarea{font:inherit;color:inherit}
+.wrap{max-width:900px;margin:0 auto;padding-inline:max(16px,env(safe-area-inset-left,0px)) max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+header.top{padding-block:22px 8px}
+h1{margin:0;font-size:24px;text-wrap:balance}
+.sub{color:var(--mute);font-size:14px;margin-top:2px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;padding-block:8px}
+nav{display:flex;gap:6px;margin-right:auto;flex-wrap:wrap}
+.tab{padding:5px 13px;border-radius:16px;background:var(--chip);border:0;font-size:14px;cursor:pointer}
+.tab[aria-current="true"]{background:var(--acc);color:#fff}
+.btn{border:0;background:var(--chip);padding:6px 13px;border-radius:16px;font-size:14px;cursor:pointer}
+.btn.pri{background:var(--acc);color:#fff}
+.btn.ghost{background:none;border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
+.sync{font-size:12px;color:var(--mute);display:flex;align-items:center;gap:5px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.sync.ok i{background:var(--ok)}
+.sync.bad i{background:var(--acc)}
+main{padding-block:12px 80px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:8px 0 14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.stat b{display:block;font-size:22px}
+.stat span{font-size:12px;color:var(--mute)}
+.note{background:var(--chip);border-radius:12px;padding:10px 14px;font-size:14px;margin:0 0 14px}
+.dgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.dcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:left;cursor:pointer;min-width:0;display:flex;flex-direction:column;gap:4px}
+.dcard:hover{border-color:var(--acc)}
+.dcard .dn{font-size:12px;color:var(--acc);font-weight:700;letter-spacing:.08em}
+.dcard .dt{font-size:17px;font-weight:700;text-wrap:balance}
+.dcard .dm{font-size:13px;color:var(--mute)}
+.dhead{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 10px}
+.dhead h2{margin:0;font-size:21px;flex:1 1 200px;min-width:0;text-wrap:balance}
+.tip{background:var(--chip);border-left:4px solid var(--acc2);border-radius:8px;padding:9px 13px;font-size:14px;margin-bottom:14px}
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl li{display:grid;grid-template-columns:54px 1fr;gap:0 12px;position:relative;padding-bottom:14px}
+.tl li::before{content:"";position:absolute;left:62px;top:8px;bottom:-6px;width:2px;background:var(--line)}
+.tl li:last-child::before{display:none}
+.tl .t{font-weight:700;font-size:15px;color:var(--acc);padding-top:2px}
+.tl .b{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0;margin-left:14px}
+.tl .b::before{content:"";position:absolute;left:57px;top:10px;width:12px;height:12px;border-radius:50%;background:var(--acc2);border:2px solid var(--bg)}
+.tl .nm{font-weight:700;overflow-wrap:anywhere}
+.tl .mm{font-size:14px;color:var(--mute);overflow-wrap:anywhere}
+.tl .row{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;justify-content:space-between}
+.cost{font-size:13px;background:var(--chip);border-radius:10px;padding:1px 9px;white-space:nowrap}
+.map{font-size:13px}
+.edit li{grid-template-columns:1fr}
+.edit li::before,.edit .b::before{display:none}
+.edit .b{margin-left:0;display:grid;gap:8px}
+.f{display:grid;gap:8px;grid-template-columns:84px 1fr 100px}
+.f2{display:grid;gap:8px}
+input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:40px}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.hint{font-size:12px;color:var(--mute)}
+.costrow{display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.costrow .bar2{height:10px;border-radius:5px;background:var(--chip);overflow:hidden}
+.costrow .bar2 i{display:block;height:100%;background:var(--acc2);border-radius:5px}
+.costrow .ttl{min-width:0;display:grid;gap:4px}
+.costrow .ttl span{overflow-wrap:anywhere}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px;display:grid;gap:10px}
+.panel .g{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.panel label{font-size:12px;color:var(--mute);display:grid;gap:3px}
+.msg{padding:30px 0;text-align:center;color:var(--mute)}
+@media (max-width:480px){.f{grid-template-columns:70px 1fr}.f .c{grid-column:1/-1}.costrow{grid-template-columns:58px 1fr auto}}
+@media (prefers-reduced-motion:no-preference){.dcard{transition:border-color .15s}}
+</style>
+
+</head><body>
+<header class="top wrap">
+  <h1 id="ttl">大阪旅記</h1>
+  <div class="sub" id="sub"></div>
+</header>
+<div class="bar"><div class="wrap">
+  <nav id="nav"></nav>
+  <span class="sync" id="sync"><i></i><span>載入中…</span></span>
+  <button class="btn" id="editBtn" hidden>編輯</button>
+  <button class="btn ghost" id="tokBtn">Token</button>
+</div></div>
+<main class="wrap" id="app"><div class="msg">載入行程中…</div></main>
+
+<script>
+(function(){
+var $=function(s){return document.querySelector(s)};
+var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+var db=null,meta={title:'大阪旅記',sub:'',start:'',rate:0.21},days={},editing=false,draft=null,metaDraft=null,route='home',canWrite=true,loaded=false,busy=false;
+var WD=['日','一','二','三','四','五','六'];
+
+function sortedDays(){return Object.keys(days).map(function(k){return days[k]}).sort(function(a,b){return a.n-b.n})}
+function dayTotal(d){return (d.spots||[]).reduce(function(s,x){return s+(Number(x.cost)||0)},0)}
+function yen(n){return '¥'+Math.round(n).toLocaleString('en-US')}
+function twd(n){return 'NT$'+Math.round(n*(Number(meta.rate)||0)).toLocaleString('en-US')}
+function dateOf(n){
+  if(!meta.start)return '';
+  var p=meta.start.split('-');if(p.length!==3)return '';
+  var d=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]+n-1));
+  return (d.getUTCMonth()+1)+'/'+d.getUTCDate()+' 週'+WD[d.getUTCDay()];
+}
+function status(cls,txt){var s=$('#sync');s.className='sync '+cls;s.lastChild.textContent=txt}
+
+function renderNav(){
+  var h='<button class="tab" data-r="home" aria-current="'+(route==='home')+'">總覽</button>';
+  sortedDays().forEach(function(d){h+='<button class="tab" data-r="d'+d.n+'" aria-current="'+(route==='d'+d.n)+'">D'+d.n+'</button>'});
+  h+='<button class="tab" data-r="cost" aria-current="'+(route==='cost')+'">花費</button>';
+  $('#nav').innerHTML=h;
+}
+
+function renderHome(){
+  var ds=sortedDays(),total=ds.reduce(function(s,d){return s+dayTotal(d)},0),spots=ds.reduce(function(s,d){return s+(d.spots||[]).length},0);
+  var h='';
+  if(editing&&metaDraft){
+    h+='<div class="panel"><div class="g">'
+     +'<label>旅記標題<input id="m_title" value="'+esc(metaDraft.title)+'"></label>'
+     +'<label>出發日期<input id="m_start" type="date" value="'+esc(metaDraft.start)+'"></label>'
+     +'<label>匯率（1 日圓 = ? 台幣）<input id="m_rate" inputmode="decimal" value="'+esc(metaDraft.rate)+'"></label></div>'
+     +'<label>副標題<input id="m_sub" value="'+esc(metaDraft.sub)+'"></label>'
+     +'<div class="acts"><button class="btn pri" id="saveMeta">儲存設定</button><button class="btn" id="addDay">新增一天</button></div></div>';
+  }
+  h+='<div class="stats"><div class="stat"><b>'+ds.length+'</b><span>天</span></div><div class="stat"><b>'+spots+'</b><span>個行程點</span></div>'
+   +'<div class="stat"><b>'+yen(total)+'</b><span>預估花費（每人，不含機票住宿）</span></div><div class="stat"><b>'+twd(total)+'</b><span>約合台幣，匯率 '+esc(meta.rate)+'</span></div></div>';
+  h+='<p class="note">3 月上旬是梅花尾聲，3 月下旬到 4 月初才是大阪櫻花。想賞櫻請排在 3/25 之後，住宿與環球影城門票盡早預訂。金額是粗估，請依實際票價修改。</p>';
+  h+='<div class="dgrid">';
+  ds.forEach(function(d){
+    h+='<button class="dcard" data-r="d'+d.n+'"><span class="dn">DAY '+d.n+(dateOf(d.n)?' · '+dateOf(d.n):'')+'</span><span class="dt">'+esc(d.title)+'</span>'
+     +'<span class="dm">'+(d.spots||[]).length+' 站 · '+yen(dayTotal(d))+'</span></button>';
+  });
+  h+='</div>';
+  return h;
+}
+
+function mapLink(name){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(name)}
+
+function renderDay(n){
+  var d=editing&&draft&&draft.n===n?draft:days['d'+n];
+  if(!d)return '<div class="msg">找不到這一天。</div>';
+  var h='<div class="dhead"><h2>DAY '+d.n+(dateOf(d.n)?' · '+dateOf(d.n):'')+'　'+(editing?'':esc(d.title))+'</h2></div>';
+  if(!editing){
+    if(d.tip)h+='<div class="tip">'+esc(d.tip)+'</div>';
+    h+='<ul class="tl">';
+    (d.spots||[]).forEach(function(s){
+      h+='<li><div class="t">'+esc(s.time)+'</div><div class="b"><div class="row"><span class="nm">'+esc(s.name)+'</span>'
+       +(Number(s.cost)?'<span class="cost">'+yen(s.cost)+'</span>':'')+'</div>'
+       +(s.memo?'<div class="mm">'+esc(s.memo)+'</div>':'')
+       +'<a class="map" href="'+mapLink(s.name)+'" target="_blank" rel="noopener">地圖</a></div></li>';
+    });
+    h+='</ul>';
+    h+='<p class="hint">本日合計 '+yen(dayTotal(d))+'（約 '+twd(dayTotal(d))+'）</p>';
+    return h;
+  }
+  h+='<div class="panel"><label>當天主題<input id="e_title" value="'+esc(d.title)+'"></label><label>提醒（選填）<textarea id="e_tip">'+esc(d.tip||'')+'</textarea></label></div>';
+  h+='<ul class="tl edit">';
+  (d.spots||[]).forEach(function(s,i){
+    h+='<li><div class="b"><div class="f"><input data-i="'+i+'" data-k="time" value="'+esc(s.time)+'" aria-label="時間"><input data-i="'+i+'" data-k="name" value="'+esc(s.name)+'" aria-label="名稱">'
+     +'<input class="c" data-i="'+i+'" data-k="cost" inputmode="numeric" value="'+esc(s.cost||'')+'" placeholder="¥ 花費" aria-label="花費"></div>'
+     +'<textarea data-i="'+i+'" data-k="memo" aria-label="備註">'+esc(s.memo||'')+'</textarea>'
+     +'<div class="acts"><button class="btn" data-a="up" data-i="'+i+'">上移</button><button class="btn" data-a="down" data-i="'+i+'">下移</button><button class="btn" data-a="del" data-i="'+i+'">刪除</button></div></div></li>';
+  });
+  h+='</ul><div class="acts"><button class="btn" id="addSpot">新增行程點</button><button class="btn pri" id="saveDay">儲存這一天</button><button class="btn ghost" id="cancelDay">取消</button></div>';
+  return h;
+}
+
+function renderCost(){
+  var ds=sortedDays(),max=Math.max.apply(null,ds.map(dayTotal).concat([1])),total=ds.reduce(function(s,d){return s+dayTotal(d)},0);
+  var h='<div class="stats"><div class="stat"><b>'+yen(total)+'</b><span>預估合計（每人）</span></div><div class="stat"><b>'+twd(total)+'</b><span>約合台幣</span></div>'
+   +'<div class="stat"><b>'+(ds.length?yen(total/ds.length):'¥0')+'</b><span>平均每天</span></div></div>';
+  ds.forEach(function(d){
+    var t=dayTotal(d);
+    h+='<div class="costrow"><span>DAY '+d.n+'</span><span class="ttl"><span>'+esc(d.title)+'</span><span class="bar2"><i style="width:'+Math.round(t/max*100)+'%"></i></span></span><span>'+yen(t)+'<br><small class="hint">'+twd(t)+'</small></span></div>';
+  });
+  h+='<p class="hint">機票、住宿、環球影城快速通關等選購項目未計入，請自行加在對應行程點。</p>';
+  return h;
+}
+
+function render(){
+  $('#ttl').textContent=meta.title;
+  $('#sub').textContent=meta.sub||'';
+  document.title=meta.title;
+  renderNav();
+  var el=$('#app');
+  if(!loaded){return}
+  if(!db){el.innerHTML='<div class="msg">讀不到行程資料（data.json）。請稍後重新整理。</div>';return}
+  if(!sortedDays().length){el.innerHTML='<div class="msg">還沒有行程資料。</div>';return}
+  if(route==='home')el.innerHTML=renderHome();
+  else if(route==='cost')el.innerHTML=renderCost();
+  else el.innerHTML=renderDay(parseInt(route.slice(1),10));
+  var eb=$('#editBtn');
+  eb.hidden=!canWrite||route==='cost';
+  eb.textContent=editing?'結束編輯':'編輯';
+}
+
+function go(r){
+  if(editing&&!(draft&&route==='d'+draft.n&&r===route)){editing=false;draft=null;metaDraft=null}
+  route=r;render();window.scrollTo(0,0);
+  try{if(r.indexOf('d')===0||r==='cost')location.hash='';}catch(e){}
+}
+
+function startEdit(){
+  editing=true;
+  if(route==='home'){metaDraft=JSON.parse(JSON.stringify(meta))}
+  else if(route.charAt(0)==='d'){draft=JSON.parse(JSON.stringify(days[route]||{}));if(!draft.spots)draft.spots=[]}
+  render();
+}
+function stopEdit(){editing=false;draft=null;metaDraft=null;render()}
+
+var REPO=location.hostname.split('.')[0]+'/'+location.pathname.split('/')[1];
+function getTok(){try{return localStorage.getItem('gh_tok')||''}catch(e){return ''}}
+function askTok(){var t=window.prompt('請貼上 GitHub token（只存在這台電腦的瀏覽器）');if(t){t=t.trim();try{localStorage.setItem('gh_tok',t)}catch(e){}return t}return ''}
+function buildData(){return {meta:meta,days:sortedDays()}}
+async function persist(){
+  var tok=getTok()||askTok();if(!tok)throw {code:'notoken'};
+  var api='https://api.github.com/repos/'+REPO+'/contents/data.json';
+  var hd={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'};
+  var r=await fetch(api,{headers:hd});if(!r.ok){if(r.status===401){try{localStorage.removeItem('gh_tok')}catch(e){}}throw {code:'http'+r.status}}
+  var cur=await r.json();
+  var b64=btoa(unescape(encodeURIComponent(JSON.stringify(buildData(),null,1))));
+  var p=await fetch(api,{method:'PUT',headers:hd,body:JSON.stringify({message:'更新行程',content:b64,sha:cur.sha})});
+  if(!p.ok)throw {code:'http'+p.status};
+}
+function errTxt(e){return e&&e.code==='notoken'?'未設定 token':e&&e.code==='http401'?'token 無效，請重貼':e&&e.code==='http404'?'token 沒有這個 repo 的權限':'儲存失敗'}
+async function saveDay(){
+  if(busy||!draft)return;busy=true;
+  draft.title=$('#e_title').value;draft.tip=$('#e_tip').value;
+  draft.spots.forEach(function(s){s.cost=Number(String(s.cost).replace(/[^0-9.]/g,''))||0});
+  var old=days['d'+draft.n];days['d'+draft.n]=draft;status('','儲存中…');
+  try{await persist();status('ok','已存到 GitHub');stopEdit()}
+  catch(e){if(old)days['d'+draft.n]=old;else delete days['d'+draft.n];status('bad',errTxt(e))}
+  busy=false;
+}
+async function saveMeta(){
+  if(busy)return;busy=true;
+  var m={title:$('#m_title').value||'大阪旅記',sub:$('#m_sub').value,start:$('#m_start').value,rate:Number($('#m_rate').value)||0.21};
+  var old=meta;meta=m;status('','儲存中…');
+  try{await persist();status('ok','已存到 GitHub');stopEdit()}
+  catch(e){meta=old;status('bad',errTxt(e))}
+  busy=false;
+}
+async function addDay(){
+  if(busy)return;busy=true;
+  var n=sortedDays().length+1;days['d'+n]={n:n,title:'新的一天',tip:'',spots:[]};status('','儲存中…');
+  try{await persist();status('ok','已存到 GitHub')}catch(e){delete days['d'+n];status('bad',errTxt(e))}
+  busy=false;render();
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-r],[data-a],button');if(!t)return;
+  if(t.dataset.r){go(t.dataset.r);return}
+  if(t.id==='tokBtn'){askTok();return}
+  if(t.id==='editBtn'){editing?stopEdit():startEdit();return}
+  if(t.id==='saveDay'){saveDay();return}
+  if(t.id==='cancelDay'){stopEdit();return}
+  if(t.id==='saveMeta'){saveMeta();return}
+  if(t.id==='addDay'){addDay();return}
+  if(t.id==='addSpot'&&draft){draft.spots.push({time:'',name:'',memo:'',cost:0});render();return}
+  var a=t.dataset.a;if(!a||!draft)return;
+  var i=+t.dataset.i,sp=draft.spots;
+  if(a==='del')sp.splice(i,1);
+  else if(a==='up'&&i>0){var x=sp[i];sp[i]=sp[i-1];sp[i-1]=x}
+  else if(a==='down'&&i<sp.length-1){var y=sp[i];sp[i]=sp[i+1];sp[i+1]=y}
+  render();
+});
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(draft&&t.dataset&&t.dataset.k){draft.spots[+t.dataset.i][t.dataset.k]=t.value}
+});
+
+(async function init(){
+  var h=location.hash.slice(1);if(/^dd+$/.test(h))route=h;
+  try{
+    var r=await fetch('data.json?'+Date.now());if(!r.ok)throw 0;
+    var j=await r.json();
+    meta=Object.assign({title:'大阪旅記',sub:'',start:'',rate:0.21},j.meta);
+    days={};(j.days||[]).forEach(function(d){days['d'+d.n]=d});
+    db=true;loaded=true;status('ok','已載入');
+  }catch(e){db=null;loaded=true;status('bad','讀取失敗')}
+  render();
+})();
+})();
+</script>
+</body></html>
