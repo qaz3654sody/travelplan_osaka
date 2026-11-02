@@ -129,12 +129,12 @@ function renderHome(){
     h+='<div class="panel"><div class="g">'
      +'<label>旅記標題<input id="m_title" value="'+esc(metaDraft.title)+'"></label>'
      +'<label>出發日期<input id="m_start" type="date" value="'+esc(metaDraft.start)+'"></label>'
-     +'<label>匯率（1 日圓 = ? 台幣）<input id="m_rate" inputmode="decimal" value="'+esc(metaDraft.rate)+'"></label></div>'
+     +'<label>匯率（1 日圓 = ? 台幣）<input id="m_rate" inputmode="decimal" value="'+esc(metaDraft.rate)+'"></label><label>旅客人數<input id="m_people" inputmode="numeric" value="'+esc(metaDraft.people||1)+'"></label></div>'
      +'<label>副標題<input id="m_sub" value="'+esc(metaDraft.sub)+'"></label>'
      +'<div class="acts"><button class="btn pri" id="saveMeta">儲存設定</button><button class="btn" id="addDay">新增一天</button></div></div>';
   }
   h+='<div class="stats"><div class="stat"><b>'+ds.length+'</b><span>天</span></div><div class="stat"><b>'+spots+'</b><span>個行程點</span></div>'
-   +'<div class="stat"><b>'+yen(total)+'</b><span>行程花費（每人）</span></div><div class="stat"><b>NT$'+num(totals().all)+'</b><span>總預估（含機票住宿），匯率 '+esc(meta.rate)+'</span></div></div>';
+   +'<div class="stat"><b>'+yen(total)+'</b><span>行程花費（每人）</span></div><div class="stat"><b>NT$'+num(totals().all)+'</b><span>每人總預估（含機票住宿），'+totals().people+' 人合計 NT$'+num(totals().group)+'，匯率 '+esc(meta.rate)+'</span></div></div>';
   h+='<p class="note">3 月上旬是梅花尾聲，3 月下旬到 4 月初才是大阪櫻花。想賞櫻請排在 3/25 之後，機票與住宿盡早預訂。金額是粗估，請依實際票價與房價修改，機票和住宿可在各自分頁填寫。</p>';
   h+='<div class="dgrid">';
   ds.forEach(function(d){
@@ -181,17 +181,19 @@ function num(n){return Math.round(Number(n)||0).toLocaleString('en-US')}
 function parseNum(s){return parseFloat(String(s).split(',').join('').replace(/[^0-9.]/g,''))||0}
 function totals(){
   var ds=sortedDays(),spots=ds.reduce(function(s,d){return s+dayTotal(d)},0);
-  var ppl=Math.max(1,Number(meta.hotelPeople)||1);
-  var hotel=(Number(meta.hotelRate)||0)*(Number(meta.hotelNights)||0)/ppl;
+  var people=Math.max(1,Number(meta.people)||1),rooms=Math.max(1,Number(meta.hotelRooms)||1);
+  var hotelTotal=(Number(meta.hotelRate)||0)*(Number(meta.hotelNights)||0)*rooms;
   var r=Number(meta.rate)||0,flight=Number(meta.flightTwd)||0;
-  return {spots:spots,hotel:hotel,flight:flight,all:(spots+hotel)*r+flight};
+  var group=(spots*people+hotelTotal)*r+flight*people;
+  return {people:people,rooms:rooms,spots:spots,hotel:hotelTotal/people,hotelTotal:hotelTotal,flight:flight,group:group,all:group/people};
 }
 function renderTotals(){
   var t=totals();
-  return '<div class="stats"><div class="stat"><b>NT$'+num(t.all)+'</b><span>總預估（每人，含機票住宿）</span></div>'
-   +'<div class="stat"><b>'+yen(t.spots)+'</b><span>行程花費，約 '+twd(t.spots)+'</span></div>'
-   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>住宿（每人），約 '+twd(t.hotel)+'</span></div>'
-   +'<div class="stat"><b>NT$'+num(t.flight)+'</b><span>來回機票（每人）</span></div></div>';
+  return '<div class="stats"><div class="stat"><b>NT$'+num(t.group)+'</b><span>'+t.people+' 人合計（含機票住宿）</span></div>'
+   +'<div class="stat"><b>NT$'+num(t.all)+'</b><span>每人總預估</span></div>'
+   +'<div class="stat"><b>'+yen(t.spots)+'</b><span>行程花費（每人），約 '+twd(t.spots)+'</span></div>'
+   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>住宿（每人），全部 '+yen(t.hotelTotal)+'</span></div>'
+   +'<div class="stat"><b>NT$'+num(t.flight)+'</b><span>來回機票（每人），'+t.people+' 人 NT$'+num(t.flight*t.people)+'</span></div></div>';
 }
 function renderHotel(){
   var t=totals();
@@ -200,18 +202,18 @@ function renderHotel(){
    +'<label>地區<input id="h_area" value="'+esc(meta.hotelArea||'')+'"></label>'
    +'<label>晚數<input id="h_nights" inputmode="numeric" value="'+esc(meta.hotelNights)+'"></label>'
    +'<label>每間每晚（日圓）<input id="h_rate" inputmode="numeric" value="'+esc(meta.hotelRate)+'"></label>'
-   +'<label>同住人數（房費均分）<input id="h_ppl" inputmode="numeric" value="'+esc(meta.hotelPeople)+'"></label></div>'
+   +'<label>房間數<input id="h_rooms" inputmode="numeric" value="'+esc(meta.hotelRooms||1)+'"></label></div>'
    +'<label>備註（這個網頁是公開的，訂房編號、房號請不要寫）<textarea id="h_note" style="min-height:120px">'+esc(meta.hotelNote||'')+'</textarea></label>'
    +'<div class="acts"><button class="btn pri" id="saveHotel">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div></div>';
-  return '<div class="stats"><div class="stat"><b>'+yen((Number(meta.hotelRate)||0)*(Number(meta.hotelNights)||0))+'</b><span>住宿總額，'+esc(meta.hotelNights)+' 晚 × '+yen(meta.hotelRate)+'</span></div>'
-   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>每人，'+esc(meta.hotelPeople)+' 人分攤，約 '+twd(t.hotel)+'</span></div></div>'
+  return '<div class="stats"><div class="stat"><b>'+yen(t.hotelTotal)+'</b><span>住宿總額，'+esc(meta.hotelNights)+' 晚 × '+yen(meta.hotelRate)+' × '+t.rooms+' 間</span></div>'
+   +'<div class="stat"><b>'+yen(t.hotel)+'</b><span>每人，'+t.people+' 人分攤，約 '+twd(t.hotel)+'</span></div></div>'
    +'<div class="panel"><div><b>'+esc(meta.hotelName||'尚未決定住宿')+'</b></div><div class="sub">'+esc(meta.hotelArea||'')+'</div>'
    +'<div style="white-space:pre-wrap">'+esc(meta.hotelNote||'')+'</div></div>';
 }
 async function saveHotel(){
   if(busy)return;busy=true;
   var old=meta;
-  meta=Object.assign({},meta,{hotelName:$('#h_name').value,hotelArea:$('#h_area').value,hotelNights:parseNum($('#h_nights').value),hotelRate:parseNum($('#h_rate').value),hotelPeople:Math.max(1,parseNum($('#h_ppl').value)),hotelNote:$('#h_note').value});
+  meta=Object.assign({},meta,{hotelName:$('#h_name').value,hotelArea:$('#h_area').value,hotelNights:parseNum($('#h_nights').value),hotelRate:parseNum($('#h_rate').value),hotelRooms:Math.max(1,parseNum($('#h_rooms').value)),hotelNote:$('#h_note').value});
   status('','儲存中…');
   try{await persist();status('ok','已存到 GitHub');stopEdit()}
   catch(e){meta=old;status('bad',errTxt(e))}
@@ -220,7 +222,7 @@ async function saveHotel(){
 function renderFlight(){
   var t=meta.flight||'';
   if(editing)return '<div class="panel"><label>來回機票預估（每人，NT$）<input id="f_cost" inputmode="numeric" value="'+esc(meta.flightTwd||'')+'"></label><label>機票建議與備註（可自由修改，網址會自動變連結）<textarea id="f_txt" style="min-height:360px">'+esc(t)+'</textarea></label><div class="acts"><button class="btn pri" id="saveFlight">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div></div>';
-  return '<div class="stats"><div class="stat"><b>NT$'+num(meta.flightTwd)+'</b><span>來回機票預估（每人）</span></div></div><div class="panel" style="white-space:pre-wrap;line-height:1.8">'+linkify(t||'還沒有內容，按右上角「編輯」新增。')+'</div>';
+  return '<div class="stats"><div class="stat"><b>NT$'+num(meta.flightTwd)+'</b><span>來回機票預估（每人）</span></div><div class="stat"><b>NT$'+num((Number(meta.flightTwd)||0)*totals().people)+'</b><span>'+totals().people+' 人合計</span></div></div><div class="panel" style="white-space:pre-wrap;line-height:1.8">'+linkify(t||'還沒有內容，按右上角「編輯」新增。')+'</div>';
 }
 function renderCost(){return renderTotals()+renderCost0()}
 function renderCost0(){
@@ -294,7 +296,7 @@ async function saveDay(){
 }
 async function saveMeta(){
   if(busy)return;busy=true;
-  var m=Object.assign({},meta,{title:$('#m_title').value||'大阪旅記',sub:$('#m_sub').value,start:$('#m_start').value,rate:Number($('#m_rate').value)||0.21});
+  var m=Object.assign({},meta,{title:$('#m_title').value||'大阪旅記',sub:$('#m_sub').value,start:$('#m_start').value,rate:Number($('#m_rate').value)||0.21,people:Math.max(1,parseNum($('#m_people').value))});
   var old=meta;meta=m;status('','儲存中…');
   try{await persist();status('ok','已存到 GitHub');stopEdit()}
   catch(e){meta=old;status('bad',errTxt(e))}
