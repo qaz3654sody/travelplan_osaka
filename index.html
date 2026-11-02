@@ -185,14 +185,14 @@ function linkify(t){return esc(t).replace(/(https?:[/][/][A-Za-z0-9%/?=&._~#:+-]
 function num(n){return Math.round(Number(n)||0).toLocaleString('en-US')}
 function parseNum(s){return parseFloat(String(s).split(',').join('').replace(/[^0-9.]/g,''))||0}
 function hotelTwd(x){var r=Number(x.cur==='JPY'?meta.rate:1)||0;return (Number(x.rate)||0)*(Number(x.nights)||0)*Math.max(1,Number(x.rooms)||1)*r}
-function selHotelObj(){var hs=meta.hotels||[];for(var i=0;i<hs.length;i++)if(hs[i].id===meta.hotelSel)return hs[i];return hs[0]||null}
+function countedHotels(){return (meta.hotels||[]).filter(function(x){return x.count})}
 function rateTxt(x){return (x.cur==='JPY'?'¥':'NT$')+num(x.rate)}
 function totals(){
   var ds=sortedDays(),spots=ds.reduce(function(s,d){return s+dayTotal(d)},0);
   var people=Math.max(1,Number(meta.people)||1),r=Number(meta.rate)||0,flight=Number(meta.flightTwd)||0;
-  var sel=selHotelObj(),hotelTotal=sel?hotelTwd(sel):0;
+  var cs=countedHotels(),hotelTotal=cs.reduce(function(s,x){return s+hotelTwd(x)},0);
   var group=spots*r*people+hotelTotal+flight*people;
-  return {people:people,spots:spots,spotsTwd:spots*r,hotel:hotelTotal/people,hotelTotal:hotelTotal,hotelName:sel?(sel.name||'尚未命名'):'尚未設定',flight:flight,group:group,all:group/people};
+  return {people:people,spots:spots,spotsTwd:spots*r,hotel:hotelTotal/people,hotelTotal:hotelTotal,hotelName:cs.length?cs.map(function(x){return x.name||'未命名'}).join('、'):'沒有計入任何住宿',flight:flight,group:group,all:group/people};
 }
 function renderTotals(){
   var t=totals();
@@ -203,7 +203,7 @@ function renderTotals(){
    +'<div class="stat"><b>NT$'+num(t.flight)+'</b><span>來回機票（每人），'+t.people+' 人 NT$'+num(t.flight*t.people)+'</span></div></div>';
 }
 function renderHotel(){
-  var p=totals().people,sel=selHotelObj(),out='';
+  var p=totals().people,out='';
   if(editing&&hdraft){
     hdraft.forEach(function(x,i){
       out+='<div class="panel"><div class="g">'
@@ -214,6 +214,7 @@ function renderHotel(){
        +'<label>幣別<select data-h="'+i+'" data-hk="cur"><option value="JPY"'+(x.cur==='TWD'?'':' selected')+'>日圓 ¥</option><option value="TWD"'+(x.cur==='TWD'?' selected':'')+'>台幣 NT$</option></select></label>'
        +'<label>房間數<input data-h="'+i+'" data-hk="rooms" inputmode="numeric" value="'+esc(x.rooms)+'"></label></div>'
        +'<label>備註（這個網頁是公開的，訂房編號、房號請不要寫）<textarea data-h="'+i+'" data-hk="note" style="min-height:90px">'+esc(x.note)+'</textarea></label>'
+       +'<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" style="width:auto" data-h="'+i+'" data-hk="count"'+(x.count?' checked':'')+'>計入預估</label>'
        +'<div class="acts"><button class="btn" data-ha="del" data-h="'+i+'">刪除這間</button></div></div>';
     });
     return out+'<div class="acts"><button class="btn" id="addHotel">新增一間住宿</button><button class="btn pri" id="saveHotel">儲存</button><button class="btn ghost" id="cancelDay">取消</button></div>';
@@ -222,27 +223,26 @@ function renderHotel(){
   if(!hs.length)return '<div class="msg">還沒有住宿，按右上角「編輯」新增。</div>';
   out='<div class="dgrid">';
   hs.forEach(function(x,i){
-    var on=sel&&x.id===sel.id,tt=hotelTwd(x);
-    out+='<div class="dcard" style="cursor:default;'+(on?'border-color:var(--acc)':'')+'"><span class="dn">'+(on?'目前採用':'備選 '+(i+1))+'</span><span class="dt">'+esc(x.name||'尚未命名')+'</span>'
+    var on=!!x.count,tt=hotelTwd(x);
+    out+='<div class="dcard" style="cursor:default;'+(on?'border-color:var(--acc)':'')+'"><span class="dn">'+(on?'計入預估':'參考 '+(i+1))+'</span><span class="dt">'+esc(x.name||'尚未命名')+'</span>'
      +'<span class="dm">'+esc(x.area||'')+'</span><span class="dm">'+rateTxt(x)+' × '+num(x.nights)+' 晚 × '+Math.max(1,Number(x.rooms)||1)+' 間</span>'
      +'<b>NT$'+num(tt)+'</b><span class="dm">每人 NT$'+num(tt/p)+'（'+p+' 人分攤）</span>'
      +(x.note?'<span class="mm" style="white-space:pre-wrap">'+esc(x.note)+'</span>':'')
-     +(on?'':'<span class="acts"><button class="btn" data-ha="sel" data-h="'+i+'">採用這間</button></span>')+'</div>';
+     +'<span class="acts"><button class="btn'+(on?'':' pri')+'" data-ha="tog" data-h="'+i+'">'+(on?'取消計入':'計入預估')+'</button></span></div>';
   });
-  return out+'</div><p class="hint">按「採用這間」，總預估會改用那間的價格。</p>';
+  return out+'</div><p class="hint">「計入預估」的住宿會加進總預估，可以同時計入多間（例如前後換飯店）。沒計入的只是參考，可以列很多間。</p>';
 }
 async function saveHotel(){
   if(busy||!hdraft)return;busy=true;
-  var list=hdraft.map(function(x){return {id:x.id,name:x.name||'',area:x.area||'',nights:parseNum(x.nights),rate:parseNum(x.rate),cur:x.cur==='TWD'?'TWD':'JPY',rooms:Math.max(1,parseNum(x.rooms)),note:x.note||''}});
-  var sel=meta.hotelSel;if(!list.some(function(x){return x.id===sel}))sel=list.length?list[0].id:'';
-  var old=meta;meta=Object.assign({},meta,{hotels:list,hotelSel:sel});status('','儲存中…');
+  var list=hdraft.map(function(x){return {id:x.id,name:x.name||'',area:x.area||'',nights:parseNum(x.nights),rate:parseNum(x.rate),cur:x.cur==='TWD'?'TWD':'JPY',rooms:Math.max(1,parseNum(x.rooms)),note:x.note||'',count:!!x.count}});
+  var old=meta;meta=Object.assign({},meta,{hotels:list});status('','儲存中…');
   try{await persist();status('ok','已存到 GitHub');stopEdit()}
   catch(e){meta=old;status('bad',errTxt(e))}
   busy=false;
 }
-async function selHotel(i){
-  if(busy)return;var x=(meta.hotels||[])[i];if(!x)return;busy=true;
-  var old=meta;meta=Object.assign({},meta,{hotelSel:x.id});status('','儲存中…');
+async function toggleHotel(i){
+  if(busy)return;var hs=meta.hotels||[];if(!hs[i])return;busy=true;
+  var old=meta;meta=Object.assign({},meta,{hotels:hs.map(function(x,k){return k===i?Object.assign({},x,{count:!x.count}):x})});status('','儲存中…');
   try{await persist();status('ok','已存到 GitHub')}catch(e){meta=old;status('bad',errTxt(e))}
   busy=false;render();
 }
@@ -354,8 +354,8 @@ document.addEventListener('click',function(e){
   if(t.id==='saveMeta'){saveMeta();return}
   if(t.id==='saveFlight'){saveFlight();return}
   if(t.id==='saveHotel'){saveHotel();return}
-  if(t.id==='addHotel'&&hdraft){hdraft.push({id:'h'+Date.now(),name:'',area:'',nights:6,rate:0,cur:'JPY',rooms:1,note:''});render();return}
-  if(t.dataset.ha){var hi=+t.dataset.h;if(t.dataset.ha==='del'&&hdraft){hdraft.splice(hi,1);render()}else if(t.dataset.ha==='sel'){selHotel(hi)}return}
+  if(t.id==='addHotel'&&hdraft){hdraft.push({id:'h'+Date.now(),name:'',area:'',nights:6,rate:0,cur:'JPY',rooms:1,note:'',count:false});render();return}
+  if(t.dataset.ha){var hi=+t.dataset.h;if(t.dataset.ha==='del'&&hdraft){hdraft.splice(hi,1);render()}else if(t.dataset.ha==='tog'){toggleHotel(hi)}return}
   if(t.id==='addDay'){addDay();return}
   if(t.id==='addSpot'&&draft){draft.spots.push({time:'',name:'',memo:'',cost:0});render();return}
   var a=t.dataset.a;if(!a||!draft)return;
@@ -367,7 +367,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){
   var t=e.target;
-  if(hdraft&&t.dataset&&t.dataset.hk){hdraft[+t.dataset.h][t.dataset.hk]=t.value}
+  if(hdraft&&t.dataset&&t.dataset.hk){hdraft[+t.dataset.h][t.dataset.hk]=(t.dataset.hk==='count'?t.checked:t.value)}
   if(draft&&t.dataset&&t.dataset.k){draft.spots[+t.dataset.i][t.dataset.k]=t.value}
 });
 
